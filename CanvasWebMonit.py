@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import hashlib
 import time
+from datetime import datetime
 from discordwebhook import Discord
 
 DISCORD_WEBHOOK_URL = ''
@@ -39,10 +40,15 @@ if __name__ == "__main__":
         current_text = get_specific_element_text(WEBSITE_URL, SELECTOR)
 
         if not current_text:
-            discord.post(content=f'Error: Cannot retrieve specified element on website {WEBSITE_URL}')      
-        elif current_text != initial_text:
-            discord.post(content=f'Website changed!\n Initial text: {initial_text}\n Current text: {current_text}')
-        # else:
-        #     discord.post(content=f'Same old same old\n"{current_text}"')
+            print(f"{datetime.now()} Error: Cannot retrieve specified element on website.\n")
+            discord.post(content=f'Error: Cannot retrieve specified element on website {WEBSITE_URL}') 
 
+        elif current_text != initial_text:
+            print(f"{datetime.now()} Website changed!\n")
+            discord.post(content=f'Website changed!\n Initial text: {initial_text}\n Current text: {current_text}')
+
+        else:
+            #discord.post(content=f'Same old same old\n"{current_text}"')
+            print(f"{datetime.now()} Same old same old...", end='\r')
+        
         time.sleep(30*60)
