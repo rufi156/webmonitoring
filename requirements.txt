@@ -1,2 +1,2 @@
 discordwebhook==1.0.3
-requests
+selenium==4.17.2
