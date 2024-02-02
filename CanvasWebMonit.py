@@ -1,8 +1,8 @@
+import requests
+from bs4 import BeautifulSoup
 import hashlib
 import time
 from discordwebhook import Discord
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 
 DISCORD_WEBHOOK_URL = ''
 with open('webhook.txt', 'r') as f:
@@ -10,45 +10,39 @@ with open('webhook.txt', 'r') as f:
 
 WEBSITE_URL = 'https://canvas-student.securerc.co.uk/onlineleasing/canvas-utrecht/floorplans.aspx'
 
-# Function to get the MD5 hash of a webpage content using Selenium
-def get_page_hash(url, save_to_file=False, filename='output.html'):
-    options = Options()
-    options.headless = True
-    driver = webdriver.Chrome(options=options)
+SELECTOR = 'DIV#CustMsgDivBottom H3'
 
-    try:
-        driver.get(url)
-        # Wait for dynamic content to load (adjust the sleep duration accordingly)
-        time.sleep(5)
-        page_content = driver.page_source.encode('utf-8')
-        current_hash = hashlib.md5(page_content).hexdigest()
+# Function to get the MD5 hash of a specific element's text content using requests and BeautifulSoup
+def get_specific_element_text(url, selector):
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.text, 'html.parser')
+        specific_element = soup.select_one(selector)
 
-        # Save the content to a file if specified
-        if save_to_file:
-            with open(filename, 'w', encoding='utf-8') as file:
-                file.write(driver.page_source)
-
-        return current_hash
-    finally:
-        driver.quit()
+        if specific_element:
+            return specific_element.text.strip()
+        else:
+            print(f'Error: Element {selector} not found on the page')
+            return None
+    else:
+        print(f'Error: {response.status_code}')
+        return None
 
 if __name__ == "__main__":
     discord = Discord(url=DISCORD_WEBHOOK_URL)
-    print(DISCORD_WEBHOOK_URL)
-    print(discord)
 
     # Initial request before entering the loop
-    initial_hash = get_page_hash(WEBSITE_URL, save_to_file=True, filename='initial_output.html')
+    initial_text = get_specific_element_text(WEBSITE_URL, SELECTOR)
 
     while True:
-        current_hash = get_page_hash(WEBSITE_URL, save_to_file=True, filename='current_output.html')
+        current_text = get_specific_element_text(WEBSITE_URL, SELECTOR)
 
-        if not current_hash: discord.post(content=f'Error: Cannot retrieve website {WEBSITE_URL}')
-        
-        if current_hash != initial_hash:
-            discord.post(content=f'Website content changed: {WEBSITE_URL}')
-        else:
-            discord.post(content=f'Website content not changed: {WEBSITE_URL}')
+        if not current_text:
+            discord.post(content=f'Error: Cannot retrieve specified element on website {WEBSITE_URL}')      
+        elif current_text != initial_text:
+            discord.post(content=f'Website changed!\n Initial text: {initial_text}\n Current text: {current_text}')
+        # else:
+        #     discord.post(content=f'Same old same old\n"{current_text}"')
 
-        #time.sleep(1800)
-        break
+        time.sleep(30*60)
