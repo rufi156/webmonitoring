@@ -1,42 +1,52 @@
-import requests
 import hashlib
 import time
 from discordwebhook import Discord
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 
 DISCORD_WEBHOOK_URL = ''
 with open('webhook.txt', 'r') as f:
     DISCORD_WEBHOOK_URL = f.readline()
 
-DISCORD = Discord(url=DISCORD_WEBHOOK_URL)
-
 WEBSITE_URL = 'https://canvas-student.securerc.co.uk/onlineleasing/canvas-utrecht/floorplans.aspx'
 
-# Function to get the MD5 hash of a webpage content
+# Function to get the MD5 hash of a webpage content using Selenium
 def get_page_hash(url):
-    response = requests.get(url)
-    if response.status_code == 200:
-    # Save the HTML content to a file
-        with open('output.html', 'w', encoding='utf-8') as file:
-            file.write(response.text)
-        print('HTML content saved to output.html')
-    else:
-        print(f'Error: {response.status_code}')
-    return hashlib.md5(response.content).hexdigest()
+    options = Options()
+    options.headless = True
+    driver = webdriver.Chrome(options=options)
+
+    try:
+        driver.get(url)
+        # Wait for dynamic content to load (adjust the sleep duration accordingly)
+        time.sleep(5)
+        page_content = driver.page_source.encode('utf-8')
+        return hashlib.md5(page_content).hexdigest()
+    finally:
+        driver.quit()
 
 if __name__ == "__main__":
+    discord = Discord(url=DISCORD_WEBHOOK_URL)
 
-    current_hash = get_page_hash(WEBSITE_URL)
+    # Initial request before entering the loop
+    initial_hash = get_page_hash(WEBSITE_URL)
+
+    # Save the initial HTML to a file
+    with open('initial_output.html', 'w', encoding='utf-8') as file:
+        options = Options()
+        options.headless = True
+        driver = webdriver.Chrome(options=options)
+        try:
+            driver.get(WEBSITE_URL)
+            file.write(driver.page_source)
+        finally:
+            driver.quit()
 
     while True:
-        # Fetch the current hash value
-        new_hash = get_page_hash(WEBSITE_URL)
+        current_hash = get_page_hash(WEBSITE_URL)
 
-        # Check for changes
-        #if new_hash != current_hash:
-        if new_hash == current_hash:
-            DISCORD.post(content=f'Website content not changed: {WEBSITE_URL}')
-            #current_hash = new_hash
+        if current_hash and current_hash != initial_hash:
+            discord.post(content=f'Website content changed: {WEBSITE_URL}')
+            # No need to update the initial hash/template
 
-        # Wait for 30 minutes before checking again
-        #time.sleep(1800)
-        break
+        time.sleep(1800)
