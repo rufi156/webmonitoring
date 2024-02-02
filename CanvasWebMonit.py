@@ -23,21 +23,20 @@ def get_page_hash(url):
         print(f'Error: {response.status_code}')
     return hashlib.md5(response.content).hexdigest()
 
-# Function to send a Discord notification
+if __name__ == "__main__":
 
-# Initial hash value for the first run
-current_hash = get_page_hash(WEBSITE_URL)
+    current_hash = get_page_hash(WEBSITE_URL)
 
-while True:
-    # Fetch the current hash value
-    new_hash = get_page_hash(WEBSITE_URL)
+    while True:
+        # Fetch the current hash value
+        new_hash = get_page_hash(WEBSITE_URL)
 
-    # Check for changes
-    #if new_hash != current_hash:
-    if new_hash == current_hash:
-        DISCORD.post(content=f'Website content not changed: {WEBSITE_URL}')
-        #current_hash = new_hash
+        # Check for changes
+        #if new_hash != current_hash:
+        if new_hash == current_hash:
+            DISCORD.post(content=f'Website content not changed: {WEBSITE_URL}')
+            #current_hash = new_hash
 
-    # Wait for 30 minutes before checking again
-    #time.sleep(1800)
-    time.sleep(10)
+        # Wait for 30 minutes before checking again
+        #time.sleep(1800)
+        break
